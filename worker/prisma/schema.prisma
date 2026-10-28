@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  repositories Repository[]
+}
+
+model Repository {
+  id                String             @id @default(uuid())
+  name              String
+  githubUrl         String
+  branch            String             @default("main")
+  githubToken       String?
+  webhookSecret     String?
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deployments       Deployment[]
+  verificationRules VerificationRule[]
+}
+
+model Deployment {
+  id            String     @id @default(uuid())
+  version       String
+  image         String
+  commitSha     String
+  commitMessage String
+  branch        String
+  status        String     @default("pending")
+  logs          String     @default("")
+  namespace     String     @default("default")
+  repositoryId  String
+  repository    Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  incidents     Incident[]
+}
+
+model VerificationRule {
+  id           String     @id @default(uuid())
+  name         String
+  metricName   String
+  operator     String
+  threshold    Float
+  duration     Int
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}
+
+model Incident {
+  id           String      @id @default(uuid())
+  deploymentId String
+  deployment   Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  reason       String
+  createdAt    DateTime    @default(now())
+  diagnoses    Diagnosis[]
+}
+
+model Diagnosis {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  aiOutput   String
+  evidence   String
+  createdAt  DateTime @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(uuid())
+  action    String
+  actor     String
+  details   String
+  createdAt DateTime @default(now())
+}

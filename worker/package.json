@@ -1,0 +1,32 @@
+{
+  "name": "shipyard-worker",
+  "version": "1.0.0",
+  "description": "Shipyard deployment pipeline worker",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@kubernetes/client-node": "^0.21.0",
+    "@prisma/client": "^5.0.0",
+    "@types/dockerode": "^3.3.19",
+    "axios": "^1.6.2",
+    "bull": "^4.12.2",
+    "dockerode": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "ioredis": "^5.3.2",
+    "node-fetch": "^3.3.2",
+    "simple-git": "^3.21.0"
+  },
+  "devDependencies": {
+    "@types/bull": "^4.10.0",
+    "@types/node": "^20.4.5",
+    "nodemon": "^3.0.1",
+    "prisma": "^5.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6"
+  }
+}
