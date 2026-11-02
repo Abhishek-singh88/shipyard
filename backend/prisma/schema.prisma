@@ -7,82 +7,82 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// These are initial draft models based on the PDF requirements (Section 14)
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id           String       @id @default(uuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   repositories Repository[]
 }
 
 model Repository {
-  id            String   @id @default(uuid())
+  id            String        @id @default(uuid())
   name          String
   githubUrl     String
-  branch        String   @default("main")
+  branch        String        @default("main")
+  githubToken   String?
+  webhookSecret String?
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   deployments   Deployment[]
-  environments  Environment[]
-}
-
-model Environment {
-  id            String   @id @default(uuid())
-  name          String   // e.g., 'production', 'staging'
-  repositoryId  String
-  repository    Repository @relation(fields: [repositoryId], references: [id])
-  createdAt     DateTime @default(now())
+  verificationRules VerificationRule[]
 }
 
 model Deployment {
   id            String   @id @default(uuid())
   version       String
   image         String
-  status        String   // 'pending', 'building', 'deploying', 'healthy', 'unhealthy', 'rolled_back'
+  commitSha     String
+  commitMessage String
+  branch        String
+  status        String   @default("pending")
+  logs          String   @default("")
+  namespace     String   @default("default")
   repositoryId  String
-  repository    Repository @relation(fields: [repositoryId], references: [id])
+  repository    Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  incidents     Incident[]
 }
 
 model VerificationRule {
-  id          String   @id @default(uuid())
-  name        String   // e.g., 'Error Rate < 5%', 'P95 Latency < 200ms'
-  metricName  String   // e.g., 'http_requests_total'
-  operator    String   // '>', '<', '=='
-  threshold   Float
-  duration    Int      // Duration in seconds to watch
-  createdAt   DateTime @default(now())
+  id           String     @id @default(uuid())
+  name         String
+  metricName   String
+  operator     String
+  threshold    Float
+  duration     Int
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
 }
 
 model Incident {
-  id            String   @id @default(uuid())
-  deploymentId  String
-  reason        String   // Summary of why it was marked unhealthy
-  createdAt     DateTime @default(now())
-  
-  diagnoses     Diagnosis[]
+  id           String      @id @default(uuid())
+  deploymentId String
+  deployment   Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  reason       String
+  createdAt    DateTime    @default(now())
+  diagnoses    Diagnosis[]
 }
 
 model Diagnosis {
-  id            String   @id @default(uuid())
-  incidentId    String
-  incident      Incident @relation(fields: [incidentId], references: [id])
-  aiOutput      String   // The text diagnosis provided by AI
-  evidence      String   // Sanitized logs/metrics passed to AI
-  createdAt     DateTime @default(now())
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  aiOutput   String
+  evidence   String
+  createdAt  DateTime @default(now())
 }
 
 model AuditEvent {
   id        String   @id @default(uuid())
   action    String
-  actor     String   // System or User
+  actor     String
   details   String
   createdAt DateTime @default(now())
 }

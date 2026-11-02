@@ -86,7 +86,7 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 60000,
 });
 
 apiClient.interceptors.request.use(
@@ -168,6 +168,13 @@ export async function getDeployment(id: string): Promise<Deployment> {
     : (response.data as Deployment);
 }
 
+export async function triggerDeployment(repositoryId: string): Promise<Deployment> {
+  const response = await apiClient.post<Deployment | { data: Deployment }>(`/repositories/${repositoryId}/deploy`);
+  return 'data' in response.data && (response.data as { data: Deployment }).data?.id
+    ? (response.data as { data: Deployment }).data
+    : (response.data as Deployment);
+}
+
 // Incidents
 export async function getIncidents(): Promise<Incident[]> {
   const response = await apiClient.get<Incident[] | { data: Incident[] }>('/incidents');
@@ -182,6 +189,13 @@ export async function getIncidents(): Promise<Incident[]> {
 
 export async function getIncident(id: string): Promise<Incident> {
   const response = await apiClient.get<Incident | { data: Incident }>(`/incidents/${id}`);
+  return 'data' in response.data && (response.data as { data: Incident }).data?.id
+    ? (response.data as { data: Incident }).data
+    : (response.data as Incident);
+}
+
+export async function simulateIncident(): Promise<Incident> {
+  const response = await apiClient.post<Incident | { data: Incident }>('/incidents/simulate');
   return 'data' in response.data && (response.data as { data: Incident }).data?.id
     ? (response.data as { data: Incident }).data
     : (response.data as Incident);

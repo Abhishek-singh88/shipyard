@@ -71,7 +71,40 @@ export async function runPipeline(input: PipelineInput): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await appendLog(deploymentId, `=== PIPELINE FAILED: ${message} ===`);
-    await setStatus(deploymentId, 'unhealthy');
+    await setStatus(deploymentId, 'rolled_back');
+
+    try {
+      const reason = `Pipeline failure: ${message.slice(0, 180)}`;
+      const incident = await prisma.incident.create({
+        data: {
+          deploymentId,
+          reason,
+        },
+      });
+
+      const deployment = await prisma.deployment.findUnique({
+        where: { id: deploymentId },
+        include: { repository: true },
+      });
+
+      if (deployment) {
+        const { diagnoseWithGemini } = await import('../diagnosis/gemini');
+        await diagnoseWithGemini(
+          incident.id,
+          deploymentId,
+          deployment,
+          {
+            podLogs: deployment.logs || message,
+            recentEvents: `[Fatal] Pipeline failure during step: ${message}`,
+            metrics: 'N/A (Failed before telemetry verification)',
+            reason,
+          }
+        );
+      }
+    } catch (incidentErr) {
+      console.error('[Worker] Error creating incident for failed pipeline:', incidentErr);
+    }
+
     throw err;
   } finally {
     if (cloneDir) {

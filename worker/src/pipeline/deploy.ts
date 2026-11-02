@@ -212,11 +212,18 @@ export async function deployToKubernetes(
     const localContainerName = appName;
 
     try {
-      const existing = docker.getContainer(localContainerName);
-      await existing.stop().catch(() => {});
-      await existing.remove().catch(() => {});
+      const containers = await docker.listContainers({ all: true });
+      for (const info of containers) {
+        const isPort3001 = info.Ports?.some((p) => p.PublicPort === 3001);
+        const isShipyardApp = info.Names?.some((n) => n.includes(appName) || n.includes('shipyard-portfolio'));
+        if (isPort3001 || isShipyardApp) {
+          const c = docker.getContainer(info.Id);
+          await c.stop().catch(() => {});
+          await c.remove().catch(() => {});
+        }
+      }
     } catch {
-      // Container didn't exist yet
+      // Container cleanup fallback
     }
 
     const container = await docker.createContainer({
